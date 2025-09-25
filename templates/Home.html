@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SecuritasBotMM</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='homestyle.css') }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    #readmeContainer {
+      display: none;
+      padding: 15px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      overflow-y: auto;
+      width: 100%;
+      height: 100%;
+    }
+    body.dark-mode #readmeContainer {
+      background: #333;
+      color: #eee;
+      border-color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay" class="overlay"></div>
+
+  <div class="sidebar" id="sidebar">
+    <div class="logo" style="text-align: center;">
+      <img src="{{ url_for('static', filename='images/Logo.png') }}" alt="Logo" width="100%">
+      SecuritasBotMM
+    </div>
+    <button id="newChatBtn">+ New Session</button>
+    <button id="readmeBtn">📄 About System</button>
+    <button id="themeToggle">🌙 Dark Mode</button>
+    <h3>History</h3>
+    <ul id="chatHistory"></ul>
+  </div>
+
+  <div class="chat-container">
+    <header>
+      <span id="toggleSidebar" class="nav-toggle">☰</span>
+      <h2>SecuritasBotMM</h2>
+    </header>
+
+    <div id="readmeContainer">
+         <div class="bot-container">
+          <div class="message bot readme-container">
+            <p>Welcome to <strong>SecuritasBotMM</strong>!<br>
+            This chatbot is made to help answer your questions about computers and online safety.<br>
+            Sometimes, if you keep asking many questions in one session, the answers may take a little longer.  
+            If you want faster answers, start a new session each time.<br><br>
+
+            <strong>Main Features:</strong><br>
+            - You can chat in Myanmar or English<br>
+            - Fun quiz mode to test your knowledge<br>
+            - Keeps history of your questions<br>
+            - Choose Dark or Light screen mode<br><br>
+
+            <strong>How to Use:</strong><br>
+            1. Type your question in the box at the bottom and press <em>Enter</em>.<br>
+            2. If you want to start fresh, click the <em>New Session</em> button.<br>
+            3. Use the <em>Dark/Light</em> button to change screen style.<br>
+            4. Try the <em>Quiz</em> option to learn and play with questions.<br>
+            5. You can ask in either <strong>Myanmar</strong> or <strong>English</strong>.<br><br>
+
+            Click "New Session" anytime to return to normal chat.
+            </p>
+            <footer style="text-align:center; margin-top:20px; font-size:14px; color:gray;position: absolute; bottom:20px">
+              <b>&copy; COPYRIGHT | UCSTT 2025. All Rights Reserved.</b>
+            </footer>
+          </div>
+        </div>
+    </div>
+
+    <div id="chatBox" class="chat-box"></div>
+
+    <div class="input-area" id="inputArea">
+      <input type="text" id="userInput" placeholder="Enter your command or query..." />
+      <button id="sendBtn">➤</button>
+    </div>
+  </div>
+
+<script>
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+const toggleSidebar = document.getElementById("toggleSidebar");
+
+toggleSidebar.onclick = () => {
+  sidebar.classList.add("active");
+  overlay.classList.add("active");
+};
+
+overlay.onclick = () => {
+  sidebar.classList.remove("active");
+  overlay.classList.remove("active");
+};
+
+const themeBtn = document.getElementById("themeToggle");
+if(localStorage.getItem("theme") === "dark"){
+  document.body.classList.add("dark-mode");
+  themeBtn.textContent = "☀️ Light Mode";
+}
+themeBtn.addEventListener("click", () => {
+  document.body.classList.toggle("dark-mode");
+  if(document.body.classList.contains("dark-mode")){
+    themeBtn.textContent = "☀️ Light Mode";
+    localStorage.setItem("theme","dark");
+  } else {
+    themeBtn.textContent = "🌙 Dark Mode";
+    localStorage.setItem("theme","light");
+  }
+});
+
+localStorage.removeItem("CyberSecSessions");
+
+let sessions = [[]];
+let activeSessionIndex = 0;
+
+function saveSessions(){
+  localStorage.setItem("CyberSecSessions",JSON.stringify(sessions));
+  renderHistory();
+}
+
+function renderHistory(){
+  const history = document.getElementById("chatHistory");
+  history.innerHTML = "";
+
+  sessions.forEach((sess,index)=>{
+    const li = document.createElement("li");
+    li.className = index===activeSessionIndex ? "active" : "";
+
+    const titleDiv = document.createElement("div");
+    titleDiv.className = "session-title";
+    titleDiv.textContent = `${sess.find(m => m.type==="user")?.text.slice(0,20) || "New Session"} (${sess.length})`;
+    titleDiv.onclick = ()=> {
+      activeSessionIndex = index;
+      showChatContainer(); 
+      renderChat();
+      renderHistory();
+      if(window.innerWidth < 768){
+        sidebar.classList.remove("active");
+        overlay.classList.remove("active");
+      }
+    };
+
+    const menuDiv = document.createElement("div");
+    menuDiv.className = "menu-container";
+
+    const menuBtn = document.createElement("span");
+    menuBtn.className = "menu-btn";
+    menuBtn.textContent = "…";
+    menuBtn.onclick = (e)=>{
+      e.stopPropagation();
+      document.querySelectorAll('.menu-container.show').forEach(el=>{
+        if(el!==menuDiv) el.classList.remove('show');
+      });
+      menuDiv.classList.toggle("show");
+    };
+
+    const deleteOption = document.createElement("div");
+    deleteOption.className = "delete-option";
+    deleteOption.textContent = "Delete";
+    deleteOption.onclick = (e)=>{
+      e.stopPropagation();
+      if(confirm("Are you sure you want to delete this session?")){
+        sessions.splice(index,1);
+        if(activeSessionIndex >= sessions.length) activeSessionIndex = sessions.length-1;
+        saveSessions();
+        renderChat();
+      }
+    };
+
+    menuDiv.appendChild(menuBtn);
+    menuDiv.appendChild(deleteOption);
+
+    li.appendChild(titleDiv);
+    li.appendChild(menuDiv);
+    history.appendChild(li);
+  });
+}
+
+document.addEventListener('click', ()=>{
+  document.querySelectorAll('.menu-container.show').forEach(el=>{
+    el.classList.remove('show');
+  });
+});
+
+function renderChat(){
+  const chatBox = document.getElementById("chatBox");
+  chatBox.innerHTML = "";
+
+  sessions[activeSessionIndex].forEach(msg => {
+  const container = document.createElement("div");
+  container.className = "message-container " + (msg.type==="user"?"user-container":"bot-container");
+
+  const div = document.createElement("div");
+  div.className = "message " + (msg.type==="user"?"user":"bot");
+
+  if(msg.type === "bot") {
+    div.innerHTML = msg.text;
+  } else {
+    div.textContent = msg.text;
+  }
+
+  container.appendChild(div);
+
+  if(!msg.temp){
+    const timeSpan = document.createElement("span");
+    timeSpan.className = "message-time";
+    timeSpan.textContent = msg.time;
+    container.appendChild(timeSpan);
+  }
+
+  chatBox.appendChild(container);
+});
+
+
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+async function sendMessage(){
+  const input = document.getElementById("userInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const text = input.value.trim();
+  if(!text) return;
+
+  const now = new Date();
+  const timeString = now.toLocaleTimeString('en-US', { hour12: false });
+
+  sessions[activeSessionIndex].push({type:"user", text, time: timeString});
+  input.value = "";
+  renderChat();
+  saveSessions();
+
+  input.disabled = true;
+  sendBtn.disabled = true;
+
+  const loadingMsg = {
+    type: "bot",
+    text: `<div class="typing-with-icon"><span class="typing-icon">🤖</span><span class="typing-dots">Just a moment</span></div>`,
+    time: timeString,
+    temp: true
+  };
+  sessions[activeSessionIndex].push(loadingMsg);
+  renderChat();
+
+  const chatBox = document.getElementById("chatBox");
+  const lastMsgContainer = chatBox.lastElementChild;
+  const timeSpan = lastMsgContainer.querySelector(".message-time");
+
+  const intervalId = setInterval(() => {
+    const now = new Date();
+    timeSpan.textContent = now.toLocaleTimeString('en-US', { hour12: false });
+  }, 1000);
+
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({prompt: text, session_id: activeSessionIndex})
+    });
+    const data = await response.json();
+
+    sessions[activeSessionIndex] = sessions[activeSessionIndex].filter(m => !m.temp);
+
+    clearInterval(intervalId);
+
+    const botTime = new Date().toLocaleTimeString('en-US', { hour12: false });
+    if(data.thinking){
+      sessions[activeSessionIndex].push({type:"bot", text:data.thinking, time:botTime});
+    }
+    sessions[activeSessionIndex].push({type:"bot", text:data.answer, time:botTime});
+    renderChat();
+    saveSessions();
+  } catch {
+    sessions[activeSessionIndex] = sessions[activeSessionIndex].filter(m => !m.temp);
+    clearInterval(intervalId);
+
+    const errorTime = new Date().toLocaleTimeString('en-US', { hour12: false });
+    sessions[activeSessionIndex].push({type:"bot", text:"⚠️ Connection error", time: errorTime});
+    renderChat();
+    saveSessions();
+  } finally {
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+function addDefaultMessage(){
+  const readmeVisible = document.getElementById("readmeContainer").style.display === "block";
+  if(!readmeVisible && sessions[activeSessionIndex].length === 0){
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('en-US', { hour12: false });
+    sessions[activeSessionIndex].push({
+      type: "bot",
+      text: `👋 Hello! I’m SecuritasBotMM. I assist Myanmar youth in understanding and navigating online safety.<br>
+• Online threats: scams, phishing, cyberbullying<br>
+• Data protection: privacy tips, GDPR basics<br>
+• Legal guidance: Myanmar Privacy Law (2017), Cybersecurity Law (2025), Electronic Transactions Law, Telecommunications Law<br>
+• Bilingual support: answers in Myanmar and English<br>
+• Interactive learning: quizzes to test and improve your cybersecurity knowledge`,
+      time: timeString
+    });
+    renderChat();
+    saveSessions();
+  }
+}
+
+function showChatContainer(){
+  document.getElementById("readmeContainer").style.display = "none";
+  document.getElementById("chatBox").style.display = "block";
+  document.getElementById("inputArea").style.display = "flex";
+  addDefaultMessage();
+}
+
+document.getElementById("newChatBtn").onclick = ()=>{
+  sessions.push([]);
+  activeSessionIndex = sessions.length-1;
+  saveSessions();
+  showChatContainer();
+};
+
+document.getElementById("readmeBtn").onclick = () => {
+  document.getElementById("readmeContainer").style.display = "block";
+  document.getElementById("chatBox").style.display = "none";
+  document.getElementById("inputArea").style.display = "none";
+};
+
+document.getElementById("inputArea").style.display = "flex";
+document.getElementById("chatBox").style.display = "block";
+document.getElementById("readmeContainer").style.display = "none";
+addDefaultMessage();
+
+document.getElementById("sendBtn").onclick = sendMessage;
+document.getElementById("userInput").addEventListener("keypress", e=>{
+  if(e.key === "Enter") sendMessage();
+});
+
+renderHistory();
+renderChat();
+</script>
+</body>
+</html>

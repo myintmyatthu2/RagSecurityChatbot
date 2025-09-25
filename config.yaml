@@ -1,0 +1,31 @@
+app_name: "SecuritasBotMM for Myanmar Students"
+
+ollama:
+  host: "http://localhost:11434"
+  llm_model: "sailor2:8b"
+  embedding_model: "jeffh/intfloat-multilingual-e5-large-instruct:q8_0"
+  generation_params:
+    max_tokens: 300
+    temperature: 0.3
+
+data_ingestion:
+  document_sources:
+    - type: "pdf"
+      path: "./data/pdfs/"
+    - type: "csv"
+      path: "./data/csvs/data.csv"
+    - type: "web"
+      urls:
+        - "https://www.unicef.org/mena/cyberbullying-what-it-and-how-stop-it"
+
+  chunking:
+    chunk_size: 900
+    chunk_overlap: 150
+  vector_store:
+    type: "chromadb"
+    persist_directory: "./chroma_db"
+    collection_name: "rag_chatbot_collection"
+
+rag:
+  retrieval_k: 1
+  chain_type: "stuff"
